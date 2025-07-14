@@ -87,19 +87,23 @@ with st.expander("📉 Matrice di correlazione tra variabili numeriche"):
 
 
 # --- Pynarrative ---
-# Mostro in Streamlit
-# Calcoli riassuntivi
+# Calcola le statistiche
+stats = df_clean.describe()
+
+# Mostrale in Streamlit
+st.subheader("📊 Statistiche descrittive delle variabili numeriche")
+st.dataframe(stats)
+
 mean_mass = df_clean["moldb_average_mass"].mean()
 mean_logp = df_clean["JCHEM_LOGP"].mean()
 mean_refractivity = df_clean["JCHEM_REFRACTIVITY"].mean()
 perc_exogenous = df_clean[df_clean["origin"] == "Exogenous"].shape[0] / df_clean.shape[0] * 100
 perc_carc = df_clean[df_clean["carcinogenicity_score"] == 1].shape[0] / df_clean.shape[0] * 100
 
-# Narrazione testuale
 story_text = f"""
 L'analisi del dataset ha rivelato alcune caratteristiche chiave delle molecole in relazione alla loro potenziale cancerogenicità.
 
-📊 **Complessivamente**, il valore medio della massa molecolare è di circa {mean_mass:.1f} g/mol, indicando la presenza di molecole di dimensioni medio-alte nel dataset. Il valore medio di LogP è pari a {mean_logp:.2f}, suggerendo un grado di lipofilia moderato: molte molecole hanno quindi la potenzialità di attraversare facilmente le membrane cellulari. La rifrazione molare media, un indice della polarizzabilità elettronica, è {mean_refractivity:.2f}, coerente con la presenza di molecole complesse e strutturalmente ricche.
+📊 **Complessivamente**, il valore medio della massa molecolare è di circa {mean_mass:.1f} g/mol, indicando la presenza di molecole di dimensioni medio-alte nel dataset. Il valore medio di LogP è pari a {mean_logp:.2f}, suggerendo un grado di lipofilia moderato: molte molecole hanno quindi la potenzialità di attraversare facilmente le membrane cellulari. La rifrazione molare media, un indice della polarizzabilità elettronica, è {mean_refractivity:.2f}, coerente con la presenza di molecole complesse.
 
 🧪 **Dal punto di vista tossicologico**, il dataset mostra che circa il {perc_carc:.1f}% delle molecole sono classificate come cancerogene o potenzialmente tali. Inoltre, il {perc_exogenous:.1f}% delle molecole ha origine esogena, sottolineando come molte di esse possano derivare da sostanze industriali, contaminanti ambientali o farmaci.
 
