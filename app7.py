@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from mlxtend.plotting import heatmap
 import plotly.express as px
+import pynarrative as pn
 
 st.set_page_config(page_title="Cancerogenicità e relazioni con le caratteristiche molecolari", layout="wide")
 
@@ -84,6 +85,37 @@ with st.expander("📉 Matrice di correlazione tra variabili numeriche"):
     fig_corr = plt.gcf()
     st.pyplot(fig_corr)
 
+
+# --- Pynarrative ---
+# Mostro in Streamlit
+# Calcoli riassuntivi
+mean_mass = df_clean["moldb_average_mass"].mean()
+mean_logp = df_clean["JCHEM_LOGP"].mean()
+mean_refractivity = df_clean["JCHEM_REFRACTIVITY"].mean()
+perc_exogenous = df_clean[df_clean["origin"] == "Exogenous"].shape[0] / df_clean.shape[0] * 100
+perc_carc = df_clean[df_clean["carcinogenicity_score"] == 1].shape[0] / df_clean.shape[0] * 100
+
+# Narrazione testuale
+story_text = f"""
+L'analisi del dataset ha rivelato alcune caratteristiche chiave delle molecole in relazione alla loro potenziale cancerogenicità.
+
+📊 **Complessivamente**, il valore medio della massa molecolare è di circa {mean_mass:.1f} g/mol, indicando la presenza di molecole di dimensioni medio-alte nel dataset. Il valore medio di LogP è pari a {mean_logp:.2f}, suggerendo un grado di lipofilia moderato: molte molecole hanno quindi la potenzialità di attraversare facilmente le membrane cellulari. La rifrazione molare media, un indice della polarizzabilità elettronica, è {mean_refractivity:.2f}, coerente con la presenza di molecole complesse e strutturalmente ricche.
+
+🧪 **Dal punto di vista tossicologico**, il dataset mostra che circa il {perc_carc:.1f}% delle molecole sono classificate come cancerogene o potenzialmente tali. Inoltre, il {perc_exogenous:.1f}% delle molecole ha origine esogena, sottolineando come molte di esse possano derivare da sostanze industriali, contaminanti ambientali o farmaci.
+
+📈 Un'osservazione interessante riguarda le relazioni tra le variabili: molecole con massa molecolare elevata tendono ad avere anche valori alti di rifrazione, il che è chimicamente plausibile poiché una maggiore massa comporta una struttura più complessa e quindi più facilmente polarizzabile.
+
+🧬 Le molecole cancerogene tendono a concentrarsi nella zona del grafico che mostra alti valori sia di massa che di rifrazione molare. Questo suggerisce che molecole più pesanti e polarizzabili possano avere una maggiore capacità di interazione con bersagli biologici, come DNA o proteine cellulari, aumentando il rischio di effetti mutageni.
+
+💡 Tuttavia, è importante sottolineare che **nessuna singola variabile** è risultata fortemente predittiva della cancerogenicità. Piuttosto, il rischio sembra emergere da un insieme di caratteristiche strutturali, confermando la necessità di un approccio multivariato per una valutazione più accurata.
+
+L'esplorazione dei dati mostra, dunque, che la cancerogenicità non dipende da un solo fattore, ma è il risultato di **interazioni sinergiche tra massa, polarità, stato fisico, lipofilia e origine molecolare**.
+"""
+story = pn.Story(story_text)
+with st.expander("🧠 Narrazione con Pynarrative"):
+    st.markdown(story_text, unsafe_allow_html=True)
+
+
 # --- Scatterplot ---
 with st.expander("🧬 Relazioni tra variabili molecolari e cancerogenicità"):
 
@@ -128,6 +160,8 @@ with st.expander("🧬 Scegli una caratteristica molecolare"):
                  hover_data=['state', 'origin', 'JCHEM_LOGP'])
 
     st.plotly_chart(fig_box)
+
+
 
 with st.expander("🧠 Interpretazione dei risultati e conclusioni"):
     st.markdown("""
