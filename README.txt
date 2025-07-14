@@ -12,6 +12,7 @@ seaborn
 matplotlib
 plotly
 streamlit
+pynarrative
 
 pip install streamlit pandas numpy matplotlib
 
