@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from mlxtend.plotting import heatmap
 import plotly.express as px
 import pynarrative as pn
+import altair as alt
+
 
 st.set_page_config(page_title="Cancerogenicità e relazioni con le caratteristiche molecolari", layout="wide")
 
@@ -86,13 +88,13 @@ with st.expander("📉 Matrice di correlazione tra variabili numeriche"):
     st.pyplot(fig_corr)
 
 
+# In Streamlit
+with st.expander("📊 Statistiche descrittive, narrazione e scatterplot con Pynarrative"):
+    st.subheader("📊 Statistiche descrittive delle variabili numeriche")
 # --- Pynarrative ---
 # Calcola le statistiche
-stats = df_clean.describe()
-
-# Mostrale in Streamlit
-st.subheader("📊 Statistiche descrittive delle variabili numeriche")
-st.dataframe(stats)
+    stats = df_clean.describe()
+    st.dataframe(stats)
 
 mean_mass = df_clean["moldb_average_mass"].mean()
 mean_logp = df_clean["JCHEM_LOGP"].mean()
@@ -116,12 +118,64 @@ L'analisi del dataset ha rivelato alcune caratteristiche chiave delle molecole i
 L'esplorazione dei dati mostra, dunque, che la cancerogenicità non dipende da un solo fattore, ma è il risultato di **interazioni sinergiche tra massa, polarità, stato fisico, lipofilia e origine molecolare**.
 """
 story = pn.Story(story_text)
-with st.expander("🧠 Narrazione con Pynarrative"):
+with st.expander("🔬 Narrazione e scatterplot con Pynarrative"):
     st.markdown(story_text, unsafe_allow_html=True)
+    # --- Streamlit graphics ---
+    storia = pn.Story(df_clean, font="Verdana")
+    grafico = (storia
+           .mark_bar()
+           .encode(
+               x='JCHEM_LOGP:Q',
+               y='JCHEM_REFRACTIVITY:Q',
+               color=alt.Color('moldb_average_mass',
+                               scale=alt.Scale(scheme='viridis'))
+           )
+           .properties(
+               title='🔬 Relazione tra massa molecolare, rifrazione e lipofilia',
+               width=700,
+               height=400
+           )
+          )
+# Visualizzazione in Streamlit
+    st.altair_chart(grafico, use_container_width=True)
+
+# Accorpo le categorie più frequenti per visualizzarle meglio nella legenda successiva
+    top_labels = df_clean['locations_all'].value_counts().nlargest(25).index
+    df_clean['loc_simplified'] = df_clean['locations_all'].apply(
+    lambda x: x if x in top_labels else 'Altri'
+)
+
+# Grafico base
+    base = alt.Chart(df_clean).mark_point().encode(
+        x='JCHEM_LOGP',
+        y='JCHEM_REFRACTIVITY',
+        color=alt.Color('loc_simplified:N',
+                        legend=alt.Legend(title='Localizzazione cellulare della molecola'),
+                        scale=alt.Scale(scheme='category10')
+),
+        tooltip=['common_name', 'moldb_average_mass', 'JCHEM_LOGP', 'JCHEM_REFRACTIVITY', 'loc_simplified']
+).properties(
+    width=700,
+    height=400,
+    title='Relazione tra localizzazione cellulare, rifrazione e lipofilia'
+)
+
+# Linea verticale
+    line = alt.Chart(pd.DataFrame({'x': [3.09]})).mark_rule(
+        color='red',
+        strokeDash=[5, 5],
+        strokeWidth=2
+).encode(x='x:Q')
+
+# Compongo grafico
+    final_chart = base + line
+    final_chart
+    st.altair_chart(final_chart, use_container_width=True)
+
 
 
 # --- Scatterplot ---
-with st.expander("🧬 Relazioni tra variabili molecolari e cancerogenicità"):
+with st.expander("🧪 Relazioni tra variabili molecolari e cancerogenicità"):
 
     fig_scatter = px.scatter(df_clean, x='moldb_average_mass', y='carcinogenicity_score',
                              color='origin',
@@ -180,9 +234,50 @@ Sono invece presenti **forti correlazioni positive tra alcune variabili indipend
 In conclusione, l’analisi suggerisce la presenza di correlazioni positive alte tra alcune variabili riguardanti la struttura chimico-fisica delle molecole ed è inoltre evidente come la cancerogenicità non possa essere spiegata da singole proprietà molecolari ma richieda un approccio multivariato.
     """)
 
+
+
+    st.markdown("""
+   🔬**Interpretazione dello scatterplot "Relazione tra lipofilia, rifrazione e localizzazione cellulare delle molecole" con Pynarrative**
+    
+ **Cosa ci racconta questo grafico?**
+
+In questo scatter plot vediamo tracciata una relazione tra due proprietà chimico-fisiche fondamentali delle molecole:
+
+* **Asse X – LogP**: la lipofilia, ovvero quanto una molecola è solubile nei grassi rispetto all'acqua.
+* **Asse Y – Rifrazione molare**: un indicatore della **polarizzabilità** elettronica e quindi della complessità strutturale.
+
+Ogni punto rappresenta una molecola, colorata in base alla sua **localizzazione cellulare prevalente** (semplificata in categorie testuali), mentre una **linea tratteggiata rossa verticale** evidenzia un valore medio di LogP (≈3.09), potenzialmente significativo nella distribuzione delle molecole lipofile.
+
+
+ **Pattern interessanti osservati**
+
+* **Molecole più idrofobe (a destra della linea rossa)** tendono a concentrarsi in zone con rifrazione intermedia-alta, suggerendo che molecole più complesse (e quindi più rifrangenti) sono anche più lipofile. Questo ha implicazioni tossicologiche: molecole lipofile attraversano facilmente le membrane biologiche e possono **accumularsi nei tessuti**.
+
+* **La maggior parte delle molecole è concentrata nell’area inferiore centrale**, suggerendo che la chimica della vita (e dei composti analizzati) ruota intorno a molecole con **moderata polarizzabilità e lipofilia**.
+
+* **Distribuzione delle localizzazioni molecolari**:
+
+   * Le **molecole localizzate nella membrana (viola chiaro) e nel citoplasma** (rosso) sono le più diffuse e presenti in un’ampia gamma di LogP e rifrazione.
+   * Le molecole presenti nel *citoplasma* (arancione) sono presenti in modesta misura in questo dataset, mentre quelle presenti nei *mitocondri* sono più rare.
+   * Le molecole classificate come **"Altri"** si concentrano in un’area ristretta ma densa a **bassa rifrazione e logP vicino allo zero**.
+   * Alcune **localizzazioni rare**, come **giunzioni cellulari** o **membrane specializzate**, si collocano ai margini dello spazio chimico, rappresentando **outlier** potenzialmente interessanti.
+
+
+  **Interpretazione biologico-tossicologica**
+
+🔹 Molecole lipofile e altamente rifrangenti potrebbero avere un **rischio maggiore di cancerogenicità**, poiché:
+
+* penetrano più facilmente nelle cellule,
+* possono legarsi in modo aspecifico a proteine o DNA,
+* resistono ai processi di degradazione.
+
+🔹 D'altra parte, la loro localizzazione può suggerire una **funzionalità biologica cruciale** (es. localizzazione nelle membrane, nel citoplasma, nei compartimenti extracellulari), che va attentamente valutata.
+    """)
+
+    
     
     st.markdown("""
-    **Interpretazione del grafico: Relazione tra peso molecolare, origine e carcinogenicità**
+    🧪**Interpretazione del grafico: Relazione tra peso molecolare, origine e carcinogenicità**
 
     - Le sostanze esogene mostrano una chiara tendenza ad avere un punteggio cancerogeno elevato (c'era da aspettarselo! 🧠).
     - Il peso molecolare elevato, come vedremo anche in seguito, potrebbe essere un fattore di rischio delle capacità cancerogene di una molecola.
@@ -191,7 +286,7 @@ In conclusione, l’analisi suggerisce la presenza di correlazioni positive alte
     
 
     st.markdown("""
-    **Interpretazione del grafico: Relazione tra peso molecolare, stato fisico e carcinogenicità**
+    🧪**Interpretazione del grafico: Relazione tra peso molecolare, stato fisico e carcinogenicità**
 
     Questo grafico mostra la relazione tra **cancerogenicità** (asse y) e **peso molecolare** (asse x), con il colore che rappresenta lo **stato fisico** in cui si presenta la molecola.
 
@@ -206,15 +301,15 @@ In conclusione, l’analisi suggerisce la presenza di correlazioni positive alte
 
 
     st.markdown("""
-    **Interpretazione del grafico boxplot: Scegli una variabile**
+    🧬**Interpretazione del grafico boxplot: Scegli una caratteristica molecolare**
 
-📈 Pattern osservati
+ Pattern osservati
 È visibile una chiara correlazione positiva tra massa molecolare e rifrazione molare: le molecole più pesanti tendono ad avere anche una rifrazione più alta.
 Questo è chimicamente plausibile, poiché molecole più grandi hanno più elettroni e strutture più complesse, il che le rende più polarizzabili e quindi con maggiore rifrazione molare.
 
 Questa relazione è confermata dalla distribuzione diagonale crescente visibile nel grafico.
 
-🧪 Legame con la cancerogenicità
+ Legame con la cancerogenicità
 I punti più scuri (carcinogenicity_score = 1) si trovano prevalentemente nella parte superiore destra del grafico: quindi molecole con massa e rifrazione elevate sono più spesso cancerogene.
 
 Questo suggerisce che strutture molecolari complesse, tipiche di molecole con elevata rifrazione e massa, possono avere una maggiore capacità di interazione con bersagli biologici (es. DNA, proteine cellulari) e inoltre che possono essere anche più lipofile, attraversare più facilmente le membrane biologiche e accumularsi nei tessuti.
