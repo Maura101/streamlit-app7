@@ -153,7 +153,7 @@ with st.expander("🔬 Narrazione e scatterplot con Pynarrative"):
                         legend=alt.Legend(title='Localizzazione cellulare della molecola'),
                         scale=alt.Scale(scheme='category10')
 ),
-        tooltip=['common_name', 'moldb_average_mass', 'JCHEM_LOGP', 'JCHEM_REFRACTIVITY', 'loc_simplified']
+        tooltip=['common_name', 'moldb_average_mass', 'JCHEM_LOGP', 'JCHEM_REFRACTIVITY', 'loc_simplified', 'carcinogenicity_label']
 ).properties(
     width=700,
     height=400,
